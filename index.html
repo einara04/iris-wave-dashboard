@@ -235,12 +235,19 @@ header {
   flex:0 0 72px;
   background:rgba(10,51,82,0.5); border:1px solid var(--border);
   border-radius:10px; padding:10px 8px; text-align:center;
-  transition:all 0.2s; cursor:default;
+  transition:all 0.15s; cursor:pointer; user-select:none;
 }
-.forecast-hour:hover, .forecast-hour.active {
-  background:rgba(14,116,144,0.2); border-color:var(--teal);
+.forecast-hour:hover {
+  background:rgba(34,211,238,0.15);
+  border-color:var(--teal-bright);
+  transform:translateY(-3px);
+  box-shadow:0 4px 16px rgba(34,211,238,0.2);
 }
-.forecast-hour.active { box-shadow:0 0 0 1px var(--teal); }
+.forecast-hour.active {
+  background:rgba(14,116,144,0.3);
+  border-color:var(--teal);
+  box-shadow:0 0 0 2px var(--teal);
+}
 .fh-time { font-size:10px; color:var(--text-muted); margin-bottom:6px; font-family:'Space Mono',monospace; }
 .fh-hs { font-family:'Space Mono',monospace; font-size:15px; font-weight:700; color:var(--teal-bright); }
 .fh-period { font-size:10px; color:var(--text-muted); margin-top:3px; }
@@ -505,7 +512,7 @@ header {
           <span style="width:10px;height:10px;border-radius:2px;border:1px solid rgba(245,158,11,0.5);display:inline-block"></span>Test day
         </span>
       </div>
-      <span class="card-badge">Click any hour to inspect</span>
+      <span class="card-badge" style="color:var(--teal-bright);border-color:rgba(34,211,238,0.3)">↓ click any card below</span>
     </div>
   </div>
   <div class="forecast-row" id="forecastRow"></div>
