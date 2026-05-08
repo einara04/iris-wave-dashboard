@@ -479,7 +479,7 @@ header {
         </div>
       </div>
       <div style="margin-top:12px;font-size:11px;color:var(--text-muted);line-height:1.6">
-        Trained on 10 days · tested on 3 unseen days (Oct 5, 8, 13) · 5 cable sites · water depth 90–130 m
+        Trained on 10 days · tested on 3 unseen days (Oct 5, 8, 13) · 5 cable sites · water depth 64–80 m (ISN2016)
       </div>
     </div>
 
@@ -490,7 +490,23 @@ header {
 <div class="card grid-full" style="margin-top:16px">
   <div class="card-header">
     <span class="card-title">Hourly Forecast Timeline</span>
-    <span class="card-badge">Click to inspect hour</span>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="display:flex;align-items:center;gap:12px;font-size:11px;color:var(--text-muted)">
+        <span style="display:flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;border-radius:50%;background:#34D399;display:inline-block"></span>Calm (&lt;1.0 m)
+        </span>
+        <span style="display:flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;border-radius:50%;background:#22D3EE;display:inline-block"></span>Moderate (1.0–1.5 m)
+        </span>
+        <span style="display:flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block"></span>Energetic (&gt;1.5 m)
+        </span>
+        <span style="display:flex;align-items:center;gap:5px">
+          <span style="width:10px;height:10px;border-radius:2px;border:1px solid rgba(245,158,11,0.5);display:inline-block"></span>Test day
+        </span>
+      </div>
+      <span class="card-badge">Click any hour to inspect</span>
+    </div>
   </div>
   <div class="forecast-row" id="forecastRow"></div>
 </div>
@@ -518,11 +534,11 @@ header {
 <script>
 // ── DATA ─────────────────────────────────────────────────────────
 const SITES = [
-  {id:1,name:"Site 1",dist:9.2,depth:88,col:"#FF4444"},
-  {id:2,name:"Site 2",dist:12.4,depth:110,col:"#22D3EE"},
-  {id:3,name:"Site 3",dist:13.9,depth:122,col:"#FFAA00"},
-  {id:4,name:"Site 4",dist:14.7,depth:127,col:"#34D399"},
-  {id:5,name:"Site 5",dist:15.1,depth:130,col:"#A78BFA"},
+  {id:1,name:"Site 1",dist:9.2,depth:64,col:"#FF4444"},
+  {id:2,name:"Site 2",dist:12.4,depth:72,col:"#22D3EE"},
+  {id:3,name:"Site 3",dist:13.9,depth:75,col:"#FFAA00"},
+  {id:4,name:"Site 4",dist:14.7,depth:78,col:"#34D399"},
+  {id:5,name:"Site 5",dist:15.1,depth:80,col:"#A78BFA"},
 ];
 const SITE_RMSE = [0.160,0.173,0.195,0.200,0.189];
 
@@ -757,18 +773,32 @@ function buildForecastRow(centreHour){
     const barH=Math.max(3,Math.round(hs/maxHs*24));
     const isActive=h===centreHour;
     const isTest=[5,8,13].includes(t.getDate());
+    // Color by wave condition
+    const condCol = hs>1.5?'#F59E0B':hs>1.0?'#22D3EE':'#34D399';
+    const condLabel = hs>1.5?'energetic':hs>1.0?'moderate':'calm';
     const div=document.createElement('div');
     div.className='forecast-hour'+(isActive?' active':'');
-    div.style.borderColor=isTest?'rgba(245,158,11,0.4)':'';
+    div.style.cssText=`border-color:${isTest?'rgba(245,158,11,0.5)':isActive?condCol:''}; cursor:pointer;`;
+    div.title=`${t.toLocaleDateString('en-GB',{day:'numeric',month:'short'})} ${t.getHours().toString().padStart(2,'0')}:00 — Hs ${hs.toFixed(2)} m (${condLabel})`;
     div.innerHTML=`
-      <div class="fh-time">${t.getHours().toString().padStart(2,'0')}:00</div>
-      <div class="fh-hs">${hs.toFixed(2)}</div>
-      <div class="fh-period">${D.wperiod[h].toFixed(0)}s</div>
-      <div class="fh-bar" style="height:${barH}px;background:${hs>1.5?'#F59E0B':hs>1.0?'#22D3EE':'#34D399'}"></div>
+      <div class="fh-time" style="pointer-events:none">${t.getHours().toString().padStart(2,'0')}:00</div>
+      <div class="fh-hs" style="pointer-events:none;color:${condCol}">${hs.toFixed(2)}</div>
+      <div class="fh-period" style="pointer-events:none">${D.wperiod[h].toFixed(0)}s</div>
+      <div class="fh-bar" style="pointer-events:none;height:${barH}px;background:${condCol}"></div>
     `;
-    div.onclick=()=>{ updateCurrentConditions(h); buildForecastRow(h); };
+    // Use data attribute and event delegation instead of inline closure
+    div.dataset.hour = h;
     row.appendChild(div);
   }
+  // Single delegated click listener — replaces broken per-div onclick
+  row.onclick = (e) => {
+    const card = e.target.closest('.forecast-hour');
+    if(!card) return;
+    const h = parseInt(card.dataset.hour);
+    if(isNaN(h)) return;
+    updateCurrentConditions(h);
+    buildForecastRow(h);
+  };
 }
 
 // ── SITE TABLE ────────────────────────────────────────────────────
