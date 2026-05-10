@@ -100,7 +100,7 @@ header {
 
 /* KPI row */
 .kpi-row {
-  display:grid; grid-template-columns:repeat(6,1fr); gap:12px;
+  display:grid; grid-template-columns:repeat(8,1fr); gap:12px;
   margin: 28px 0;
 }
 .kpi {
@@ -280,8 +280,46 @@ header {
 .info-text { font-size:13px; color:var(--text-muted); line-height:1.6; }
 .info-text strong { color:var(--teal-bright); }
 
-/* Scrollbar */
-::-webkit-scrollbar { width:5px; }
+/* Surf conditions */
+.surf-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px;
+}
+.surf-card {
+  border-radius:12px; padding:18px 16px;
+  border:1px solid var(--border);
+  backdrop-filter:blur(12px);
+  text-align:center; position:relative; overflow:hidden;
+  transition:transform 0.2s, border-color 0.2s;
+}
+.surf-card:hover { transform:translateY(-2px); border-color:var(--teal-bright); }
+.surf-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+}
+.surf-card.epic::before    { background:linear-gradient(90deg,#10B981,#34D399); }
+.surf-card.good::before    { background:linear-gradient(90deg,#22D3EE,#67E8F9); }
+.surf-card.fair::before    { background:linear-gradient(90deg,#F59E0B,#FCD34D); }
+.surf-card.poor::before    { background:linear-gradient(90deg,#EF4444,#F87171); }
+.surf-card.flat::before    { background:linear-gradient(90deg,#64A4BE,#8BA3BB); }
+.surf-rating {
+  font-size:36px; margin-bottom:6px;
+}
+.surf-label {
+  font-family:'Space Mono',monospace; font-size:14px; font-weight:700;
+  margin-bottom:8px; letter-spacing:0.05em;
+}
+.surf-label.epic  { color:#34D399; }
+.surf-label.good  { color:#22D3EE; }
+.surf-label.fair  { color:#F59E0B; }
+.surf-label.poor  { color:#EF4444; }
+.surf-label.flat  { color:#64A4BE; }
+.surf-detail { font-size:11px; color:var(--text-muted); line-height:1.7; }
+.surf-hs { font-family:'Space Mono',monospace; font-size:20px; font-weight:700; color:var(--text-primary); margin:6px 0; }
+.surf-who {
+  margin-top:10px; padding-top:10px;
+  border-top:1px solid var(--border);
+  font-size:10.5px; color:var(--text-muted); line-height:1.6;
+}
+@media(max-width:700px){ .surf-grid{grid-template-columns:1fr;} }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:var(--teal); border-radius:100px; }
 
@@ -359,6 +397,16 @@ header {
     <div class="kpi-label">vs Baseline</div>
     <div class="kpi-value good">47%</div>
     <div class="kpi-sub">Better than constant pred.</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Wind Speed</div>
+    <div class="kpi-value" id="kpi-wind-spd">—</div>
+    <div class="kpi-sub" id="kpi-wind-sub">Eyrarbakki</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-label">Wind for Surf</div>
+    <div class="kpi-value" id="kpi-wind-dir">—</div>
+    <div class="kpi-sub" id="kpi-wind-effect">—</div>
   </div>
 </div>
 
@@ -518,6 +566,19 @@ header {
   <div class="forecast-row" id="forecastRow"></div>
 </div>
 
+<!-- Surf Conditions -->
+<div class="card grid-full" style="margin-top:16px">
+  <div class="card-header">
+    <span class="card-title">🏄 Surf &amp; Sea Conditions — Waves + Wind</span>
+    <span class="card-badge" id="surf-hour-badge">—</span>
+  </div>
+  <div class="surf-grid" id="surfGrid"></div>
+  <div style="font-size:11px;color:var(--text-muted);margin-top:4px;padding-top:10px;border-top:1px solid var(--border)">
+    ⚠️ <strong style="color:var(--text-primary)">Safety notice:</strong>
+    Surf conditions are estimated from IRIS DAS cable wave predictions + Eyrarbakki wind observations. Always check <a href="https://en.vedur.is/weather/forecasts/coastal/" target="_blank" style="color:var(--teal-bright)">Veðurstofa Íslands</a> before surfing. Wave height predictions carry ±0.18 m uncertainty. Iceland's coast is cold and remote — never surf alone.
+  </div>
+</div>
+
 <!-- Site table -->
 <div class="card grid-full" style="margin-top:16px">
   <div class="card-header">
@@ -570,6 +631,37 @@ function genData(){
   return {ts,hs_true,hs_pred,wdir,wperiod};
 }
 const D = genData();
+
+// ── REAL WIND DATA (Eyrarbakki station, hourly) ──────────────────
+const WIND_SPEED = [0.84, 0.16, 1.23, 2.03, 2.54, 3.21, 4.07, 5.4, 4.5, 4.04, 3.2, 2.48, 1.98, 5.18, 5.47, 4.49, 3.86, 4.52, 3.44, 3.25, 3.66, 3.15, 4.03, 4.37, 5.04, 5.19, 5.71, 6.08, 5.17, 4.63, 4.15, 3.6, 3.2, 3.42, 4.18, 4.19, 4.59, 3.64, 3.24, 3.45, 3.63, 3.76, 3.82, 2.8, 3.4, 3.46, 2.15, 2.07, 2.4, 2.61, 1.88, 3.31, 3.65, 3.84, 4.1, 4.42, 5.33, 5.36, 5.72, 5.56, 6.55, 7.7, 8.54, 8.54, 7.19, 6.27, 6.66, 6.61, 7.12, 9.54, 10.16, 9.24, 10.29, 10.26, 8.99, 8.95, 8.4, 8.79, 9.3, 9.3, 9.39, 7.65, 8.28, 10.03, 12.3, 11.13, 11.45, 9.45, 8.67, 7.8, 9.63, 7.25, 8.31, 9.28, 8.67, 5.85, 5.74, 5.51, 8.2, 7.36, 8.26, 6.57, 7.76, 7.81, 6.91, 6.62, 7.46, 7.18, 7.08, 7.57, 6.12, 5.33, 4.18, 6.92, 7.81, 7.5, 6.99, 7.32, 7.26, 7.72, 8.86, 8.57, 7.37, 8.85, 8.16, 8.14, 7.02, 8.42, 8.25, 8.22, 8.43, 7.13, 10.29, 9.12, 7.81, 7.49, 6.1, 4.41, 5.13, 4.09, 5.23, 7.26, 9.86, 7.4, 5.77, 6.36, 7.39, 6.76, 6.47, 5.55, 7.44, 8.33, 6.9, 7.38, 6.89, 6.66, 6.46, 5.61, 5.02, 3.83, 2.76, 1.46, 3.23, 2.43, 2.05, 2.31, 3.64, 3.51, 2.32, 1.67, 3.09, 2.59, 2.69, 3.77, 2.95, 3.23, 3.48, 4.48, 4.1, 4.2, 4.73, 4.58, 4.34, 4.04, 3.94, 4.88, 5.57, 4.7, 4.76, 4.1, 5.13, 4.1, 2.68, 3.89, 4.46, 4.32, 4.55, 4.16, 3.51, 2.37, 1.67, 1.78, 1.71, 1.92, 0.92, 1.04, 3.29, 5.37, 4.53, 5.2, 2.62, 2.03, 2.97, 1.46, 2.63, 2.94, 0.82, 1.78, 3.06, 1.79, 2.32, 1.78, 1.82, 2.16, 2.09, 2.14, 2.19, 3.05, 3.22, 4.27, 5.42, 6.09, 6.57, 5.36, 5.7, 4.93, 4.44, 5.15, 3.44, 3.62, 6.44, 5.34, 4.04, 3.78, 5.04, 4.06, 3.45, 2.65, 3.71, 3.92, 2.36, 6.15, 6.45, 7.54, 7.02, 6.92, 6.21, 4.16, 4.13, 3.76, 3.83, 3.57, 3.45, 3.23, 2.92, 3.88, 1.76, 3.49, 3.11, 2.94, 2.83, 2.08, 2.34, 1.29, 1.19, 2.31, 3.13, 3.12, 1.83, 1.38, 1.4];
+const WIND_GUST  = [1.67, 0.65, 3.4, 3.07, 3.66, 4.77, 5.65, 7.61, 6.96, 6.43, 4.74, 4.18, 5.1, 8.17, 9.21, 6.53, 6.34, 7.19, 6.14, 7.28, 6.43, 5.65, 7.19, 7.19, 8.92, 7.97, 8.75, 9.41, 8.17, 6.73, 6.01, 5.65, 6.57, 5.82, 6.17, 6.99, 7.48, 7.06, 5.52, 5.39, 5.36, 5.98, 6.83, 4.44, 5.52, 5.32, 3.82, 3.1, 4.18, 4.87, 3.66, 4.67, 5.23, 5.88, 6.89, 6.47, 7.74, 7.38, 8.07, 8.59, 10.0, 11.27, 12.41, 12.22, 11.73, 9.87, 11.4, 10.62, 11.34, 13.85, 14.5, 14.11, 15.55, 16.2, 12.74, 12.81, 12.48, 13.65, 13.69, 14.96, 14.8, 10.88, 13.56, 17.41, 16.99, 16.17, 16.92, 14.01, 12.51, 12.45, 13.2, 12.41, 14.08, 14.86, 14.5, 9.47, 8.46, 8.3, 13.26, 12.02, 11.79, 9.96, 10.58, 10.85, 11.11, 9.93, 10.68, 11.27, 10.19, 12.18, 9.96, 9.8, 8.66, 10.09, 11.92, 13.3, 12.64, 12.05, 12.71, 10.09, 13.69, 14.18, 11.76, 13.07, 13.26, 13.46, 11.53, 12.41, 12.54, 12.09, 13.2, 10.49, 16.24, 15.39, 12.25, 10.32, 9.73, 6.43, 7.12, 6.63, 8.13, 13.46, 14.08, 13.2, 9.31, 10.0, 10.71, 11.2, 9.38, 9.44, 10.98, 10.94, 10.26, 10.16, 9.51, 9.51, 8.95, 8.07, 7.15, 6.27, 4.84, 3.49, 3.95, 3.66, 3.76, 3.43, 5.29, 4.7, 3.66, 2.88, 4.7, 4.18, 3.86, 5.06, 3.95, 4.51, 4.64, 6.11, 5.88, 5.98, 6.96, 6.5, 6.17, 5.59, 5.65, 7.35, 7.84, 7.12, 8.17, 6.27, 7.12, 5.49, 5.13, 5.16, 7.48, 7.25, 6.24, 6.5, 5.23, 5.45, 4.41, 4.54, 3.69, 3.49, 2.74, 2.22, 7.19, 8.04, 7.41, 8.13, 4.9, 4.77, 4.57, 2.78, 3.2, 3.76, 2.58, 2.74, 4.34, 2.68, 3.69, 3.14, 3.04, 3.72, 4.08, 3.72, 3.82, 5.45, 5.52, 7.32, 8.46, 10.26, 9.38, 8.79, 8.59, 6.8, 6.53, 8.43, 5.45, 8.56, 10.22, 8.0, 5.82, 6.04, 6.93, 6.27, 4.74, 4.08, 8.62, 8.66, 6.24, 10.65, 11.83, 11.2, 9.96, 10.55, 8.85, 6.43, 5.45, 5.1, 4.8, 4.8, 4.57, 4.31, 4.64, 4.93, 3.72, 5.13, 4.87, 4.54, 4.12, 3.01, 3.53, 2.38, 3.23, 3.98, 4.47, 4.97, 3.33, 2.94, 2.65];
+const WIND_DIR   = [322.6, 32.9, 70.5, 86.7, 83.2, 76.8, 76.0, 71.0, 64.4, 76.8, 70.5, 78.5, 163.8, 222.6, 229.0, 215.3, 216.0, 214.3, 233.5, 218.7, 230.8, 216.2, 218.5, 222.3, 211.8, 204.7, 203.7, 204.3, 202.2, 194.7, 192.7, 193.3, 198.3, 178.7, 185.7, 175.5, 165.0, 199.0, 188.2, 213.5, 189.3, 184.7, 202.8, 184.3, 172.7, 172.3, 177.3, 161.3, 155.3, 157.5, 106.4, 101.5, 94.0, 93.7, 70.6, 50.0, 46.3, 46.7, 58.3, 61.0, 51.7, 57.3, 60.8, 56.7, 53.2, 56.5, 57.7, 50.5, 50.7, 54.2, 49.0, 46.8, 54.3, 52.2, 56.0, 52.5, 41.2, 39.0, 43.0, 45.7, 49.0, 45.3, 49.3, 53.5, 57.7, 54.7, 63.5, 54.0, 56.3, 47.8, 55.3, 60.0, 58.5, 54.0, 54.0, 48.0, 52.2, 54.2, 54.8, 46.0, 59.5, 38.5, 62.8, 52.4, 39.0, 54.7, 53.7, 59.5, 61.8, 62.8, 54.0, 54.8, 60.7, 70.3, 52.8, 52.8, 49.0, 47.0, 52.7, 55.8, 48.3, 57.3, 50.5, 53.8, 49.3, 52.7, 55.7, 56.2, 51.0, 56.2, 49.4, 53.9, 64.8, 72.5, 71.2, 68.7, 60.0, 51.7, 54.8, 42.8, 52.3, 49.8, 50.3, 43.2, 24.0, 28.7, 43.0, 46.2, 41.5, 31.5, 34.2, 41.0, 45.0, 40.3, 48.2, 54.2, 56.3, 55.5, 56.3, 54.7, 46.3, 317.2, 286.9, 342.9, 67.0, 65.3, 67.3, 40.6, 18.7, 32.0, 56.2, 55.3, 56.3, 56.0, 52.7, 58.2, 59.3, 66.2, 68.5, 62.5, 60.7, 64.7, 68.2, 68.7, 58.4, 58.2, 52.2, 46.8, 56.0, 56.3, 49.2, 53.2, 43.6, 31.0, 57.2, 55.2, 56.5, 53.5, 47.8, 53.7, 22.8, 25.1, 35.5, 53.9, 334.7, 233.0, 293.3, 321.5, 316.2, 307.2, 351.5, 18.6, 340.2, 9.6, 336.0, 19.7, 122.9, 89.3, 86.5, 90.7, 49.7, 20.4, 50.8, 55.3, 59.8, 60.0, 59.2, 54.3, 27.2, 24.7, 10.3, 13.3, 9.3, 7.8, 9.7, 1.7, 7.7, 5.5, 355.2, 35.6, 16.3, 13.4, 39.9, 23.4, 36.3, 23.9, 22.1, 40.8, 35.9, 14.7, 9.0, 22.2, 22.8, 35.5, 37.0, 42.8, 38.5, 29.2, 4.8, 358.3, 6.5, 8.5, 9.2, 31.6, 44.5, 31.3, 34.9, 35.4, 23.0, 27.4, 35.1, 14.9, 44.9, 6.5, 26.8, 54.8, 65.2, 61.2, 46.2, 22.9, 351.5];
+
+function windLabel(spd) {
+  if(spd < 2)  return 'Calm';
+  if(spd < 5)  return 'Light';
+  if(spd < 8)  return 'Moderate';
+  if(spd < 11) return 'Fresh';
+  if(spd < 14) return 'Strong';
+  return 'Gale';
+}
+
+function windEffect(wSpd, wDir) {
+  // Surf near south Iceland coast. Offshore = N/NE/NW, onshore = S/SE/SW
+  const d = ((wDir % 360) + 360) % 360;
+  if(wSpd < 2)
+    return {type:'Glassy', effect:'No wind — mirror surface', bonus:2};
+  if((d >= 315 || d < 45) && wSpd < 8)
+    return {type:'Offshore N', effect:'Clean groomed faces', bonus:1};
+  if((d >= 45 && d < 135) && wSpd < 6)
+    return {type:'Cross E', effect:'Slight texture', bonus:0};
+  if(d >= 135 && d < 225)
+    return {type:'Onshore S', effect:'Choppy messy faces', bonus:-2};
+  if(wSpd >= 11)
+    return {type:'Too windy', effect:'Blown out', bonus:-2};
+  return {type:'Cross-shore', effect:'Some texture', bonus:-1};
+}
+
 let currentHour = 107; // Oct 5 storm peak default
 
 // ── CLOCK ─────────────────────────────────────────────────────────
@@ -738,6 +830,16 @@ function updateCurrentConditions(hourIdx){
   hsEl.className='kpi-value'+(pred>1.5?' warn':' good');
   document.getElementById('kpi-hs-sub').textContent=`WAM ref: ${hs.toFixed(2)} m`;
   document.getElementById('kpi-period').textContent=per.toFixed(1)+' s';
+  const wSpd=WIND_SPEED[hourIdx]||0;
+  const wGst=WIND_GUST[hourIdx]||0;
+  const wDr=WIND_DIR[hourIdx]||0;
+  const wEff=windEffect(wSpd,wDr);
+  const wsEl=document.getElementById('kpi-wind-spd');
+  wsEl.textContent=wSpd.toFixed(1)+' m/s';
+  wsEl.className='kpi-value'+(wSpd>10?' warn':wSpd<3?' good':'');
+  document.getElementById('kpi-wind-sub').textContent=windLabel(wSpd)+' · gust '+wGst.toFixed(1)+' m/s';
+  document.getElementById('kpi-wind-dir').textContent=wDr.toFixed(0)+'°';
+  document.getElementById('kpi-wind-effect').textContent=wEff.type;
   document.getElementById('kpi-dir').textContent=dir.toFixed(0)+'°';
 
   // Badge
@@ -805,6 +907,7 @@ function buildForecastRow(centreHour){
     if(isNaN(h)) return;
     updateCurrentConditions(h);
     buildForecastRow(h);
+    buildSurfGrid(h);
   };
 }
 
@@ -853,10 +956,156 @@ function setView(view, el){
   tsChart.update();
 }
 
+// ── SURF CONDITIONS ───────────────────────────────────────────────
+function surfRating(hs, period, site) {
+  // Convert Hs to approximate face height (surfer's measurement)
+  // Face height ≈ 0.6–0.8 × Hs for swell-dominated conditions
+  const faceH = hs * 0.7;
+  const faceHft = (faceH * 3.281).toFixed(1);
+  const hsM = hs.toFixed(2);
+
+  let cls, label, emoji, desc, who;
+
+  if (hs < 0.3) {
+    cls='flat'; label='FLAT'; emoji='😴';
+    desc=`${hsM} m · No rideable waves`;
+    who='No surf. Good for swimming and paddleboarding.';
+  } else if (hs < 0.6) {
+    cls='poor'; label='POOR'; emoji='🤷';
+    desc=`${hsM} m · ~${faceHft} ft faces · ${period.toFixed(0)}s period`;
+    who='Beginners only in sheltered spots. Mostly closeouts.';
+  } else if (hs < 1.0) {
+    cls='fair'; label='FAIR'; emoji='🙂';
+    desc=`${hsM} m · ~${faceHft} ft faces · ${period.toFixed(0)}s period`;
+    who='Beginners to intermediates. Fun small surf.';
+  } else if (hs < 1.5) {
+    cls='good'; label='GOOD'; emoji='🤙';
+    desc=`${hsM} m · ~${faceHft} ft faces · ${period.toFixed(0)}s period`;
+    who='Intermediate to advanced surfers. Solid conditions.';
+  } else if (hs < 2.0) {
+    cls='epic'; label='EPIC'; emoji='🔥';
+    desc=`${hsM} m · ~${faceHft} ft faces · ${period.toFixed(0)}s period`;
+    who='Experienced surfers only. Powerful swell — for experienced surfers.';
+  } else {
+    cls='poor'; label='DANGER'; emoji='⛔';
+    desc=`${hsM} m · ~${faceHft} ft faces · ${period.toFixed(0)}s period`;
+    who='Dangerous conditions — experienced surfers only.';
+  }
+
+  // Harbour/vessel advice
+  let vesselNote = '';
+  if (hs < 0.5) vesselNote = 'Calm — all vessels safe';
+  else if (hs < 1.0) vesselNote = 'Small craft advisory possible';
+  else if (hs < 1.5) vesselNote = 'Small craft caution advised';
+  else vesselNote = 'Small craft warning — check harbour forecast';
+
+  return { cls, label, emoji, desc, who, vesselNote };
+}
+
+function buildSurfGrid(hourIdx) {
+  const grid = document.getElementById('surfGrid');
+  const badge = document.getElementById('surf-hour-badge');
+  const t = D.ts[hourIdx];
+  badge.textContent = t.toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+
+  // Four context cards: surf, kayak/SUP, harbour, swimming
+  const hs = D.hs_pred[hourIdx];
+  const period = D.wperiod[hourIdx];
+  const dir = D.wdir[hourIdx];
+
+  // Surf
+  const surf = surfRating(hs, period, 0);
+
+  // Kayak / SUP — more conservative
+  let kayakCls, kayakLabel, kayakEmoji, kayakDesc;
+  if (hs < 0.4) { kayakCls='epic'; kayakLabel='IDEAL'; kayakEmoji='🛶'; kayakDesc='Flat water — perfect for kayaking and SUP'; }
+  else if (hs < 0.8) { kayakCls='good'; kayakLabel='GOOD'; kayakEmoji='🛶'; kayakDesc='Manageable for experienced paddlers'; }
+  else if (hs < 1.2) { kayakCls='fair'; kayakLabel='CAUTION'; kayakEmoji='⚠️'; kayakDesc='Challenging — experienced only, stay near shore'; }
+  else { kayakCls='poor'; kayakLabel='NOT ADVISED'; kayakEmoji='⛔'; kayakDesc='Too rough for kayaking and paddleboarding'; }
+
+  // Harbour / vessel
+  let harbourCls, harbourLabel, harbourEmoji, harbourDesc;
+  if (hs < 0.5) { harbourCls='epic'; harbourLabel='CALM'; harbourEmoji='⚓'; harbourDesc='All vessels — favourable conditions'; }
+  else if (hs < 1.0) { harbourCls='good'; harbourLabel='MODERATE'; harbourEmoji='⚓'; harbourDesc='Small craft — check local harbour forecast'; }
+  else if (hs < 1.5) { harbourCls='fair'; harbourLabel='ROUGH'; harbourEmoji='🚢'; harbourDesc='Small craft advisory — larger vessels OK'; }
+  else { harbourCls='poor'; harbourLabel='WARNING'; harbourEmoji='🚨'; harbourDesc='Small craft warning — Þorlákshöfn harbour may be affected'; }
+
+  // Swimming / coasteering
+  let swimCls, swimLabel, swimEmoji, swimDesc;
+  if (hs < 0.5) { swimCls='epic'; swimLabel='SAFE'; swimEmoji='🏊'; swimDesc='Calm — safe swimming in sheltered areas'; }
+  else if (hs < 0.8) { swimCls='good'; swimLabel='OK'; swimEmoji='🏊'; swimDesc='Moderate — strong swimmers only, watch rips'; }
+  else if (hs < 1.2) { swimCls='fair'; swimLabel='CAUTION'; swimEmoji='⚠️'; swimDesc='Significant swell — swimming not recommended'; }
+  else { swimCls='poor'; swimLabel='DANGEROUS'; swimEmoji='🚫'; swimDesc='Do not enter water — Iceland coastline is unforgiving'; }
+
+  const wSpd2=WIND_SPEED[hourIdx]||0;
+  const wDr2=WIND_DIR[hourIdx]||0;
+  const wEff2=windEffect(wSpd2,wDr2);
+  const clsList=['flat','poor','fair','good','epic'];
+  let adjI=Math.max(0,Math.min(4,clsList.indexOf(surf.cls)+wEff2.bonus));
+  const adjCls=clsList[adjI];
+  const adjLbls={flat:'FLAT',poor:'POOR',fair:'FAIR',good:'GOOD',epic:'EPIC'};
+  const adjEmj={flat:'😴',poor:'🤷',fair:'🙂',good:'🤙',epic:'🔥'};
+  const windLine='<span style="color:var(--teal-bright);font-size:10px">Wind '+wSpd2.toFixed(1)+' m/s '+wDr2.toFixed(0)+'° — '+wEff2.type+' · '+wEff2.effect+'</span>';
+
+  // Face height
+  const faceH = (hs * 0.7).toFixed(1);
+  const faceHft = (hs * 0.7 * 3.281).toFixed(1);
+
+  // Period quality
+  let periodQuality, periodCol;
+  if(period >= 12)      { periodQuality='Long period swell — powerful, well-organised'; periodCol='#34D399'; }
+  else if(period >= 9)  { periodQuality='Medium period — good quality waves'; periodCol='#22D3EE'; }
+  else if(period >= 7)  { periodQuality='Short period — weaker, more frequent'; periodCol='#F59E0B'; }
+  else                  { periodQuality='Wind swell — choppy, poor quality'; periodCol='#EF4444'; }
+
+  // Crowd level (fun metric based on conditions)
+  let crowd, crowdEmoji;
+  if(adjCls==='epic')       { crowd='Expect a crowd'; crowdEmoji='👥'; }
+  else if(adjCls==='good')  { crowd='Moderate crowd'; crowdEmoji='🧍'; }
+  else if(adjCls==='fair')  { crowd='Quiet lineup'; crowdEmoji='😌'; }
+  else                       { crowd='Empty — for good reason'; crowdEmoji='🏝️'; }
+
+  const cards = [
+    {
+      cls: adjCls, emoji: adjEmj[adjCls], label: adjLbls[adjCls] + ' SURF',
+      hs: `Hₛ = ${hs.toFixed(2)} m  ·  ~${faceHft} ft faces`,
+      detail: `${period.toFixed(0)}s swell · ${windLine}`,
+      who: wEff2.effect
+    },
+    {
+      cls: adjCls==='epic'||adjCls==='good' ? 'good' : adjCls==='fair' ? 'fair' : 'poor',
+      emoji: '🌊',
+      label: 'WAVE QUALITY',
+      hs: `Period: ${period.toFixed(1)}s`,
+      detail: `<span style="color:${periodCol}">${periodQuality}</span>`,
+      who: `Face height ~${faceH} m (~${faceHft} ft) · ${hs.toFixed(2)} m Hₛ`
+    },
+    {
+      cls: adjCls==='flat'||adjCls==='poor' ? 'fair' : adjCls,
+      emoji: crowdEmoji,
+      label: 'WIND & CROWD',
+      hs: `${wSpd2.toFixed(1)} m/s · ${wDr2.toFixed(0)}°`,
+      detail: `<span style="color:var(--teal-bright)">${wEff2.type}</span> — ${wEff2.effect}`,
+      who: crowd
+    }
+  ];
+
+  grid.innerHTML = cards.map(c => `
+    <div class="surf-card ${c.cls}">
+      <div class="surf-rating">${c.emoji}</div>
+      <div class="surf-label ${c.cls}">${c.label}</div>
+      <div class="surf-hs">${c.hs}</div>
+      <div class="surf-detail">${c.detail}</div>
+      <div class="surf-who">${c.who}</div>
+    </div>
+  `).join('');
+}
+
 // ── INIT ──────────────────────────────────────────────────────────
 updateCurrentConditions(107);
 buildForecastRow(107);
 buildSiteTable();
+buildSurfGrid(107);
 </script>
 </body>
 </html>
